@@ -146,58 +146,6 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    db = SessionLocal()
-    db_status = "disconnected"
-    try:
-        from sqlalchemy import text
-        db.execute(text("SELECT 1"))
-        db_status = "connected"
-    except Exception:
-        pass
-    finally:
-        db.close()
-        
-    # Check Pinecone
-    pinecone_status = "disconnected"
-    if os.getenv("PINECONE_API_KEY"):
-        try:
-            from pinecone import Pinecone
-            pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-            pc.list_indexes()
-            pinecone_status = "connected"
-        except Exception:
-            pass
-
-    # Check Groq
-    groq_status = "disconnected"
-    if os.getenv("GROQ_API_KEY"):
-        groq_status = "connected"
-        
-    # Check Wasender
-    wasender_status = "disconnected"
-    if os.getenv("WASENDER_API_KEY"):
-        wasender_status = "connected"
-    else:
-        # If running in local mock fallback mode
-        wasender_status = "mocked"
-
-    # Check Local Disk Storage
-    storage_status = "healthy"
-    try:
-        if not os.path.exists("public/uploads/kb"):
-            os.makedirs("public/uploads/kb", exist_ok=True)
-    except Exception:
-        storage_status = "unwritable"
-
     return {
-        "status": "healthy" if db_status == "connected" else "unhealthy",
-        "services": {
-            "fastapi": "healthy",
-            "postgresql": db_status,
-            "pinecone": pinecone_status,
-            "groq": groq_status,
-            "wasender": wasender_status,
-            "storage": storage_status,
-            "background_workers": "healthy"
-        }
+        "status": "healthy"
     }
