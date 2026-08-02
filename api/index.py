@@ -10,7 +10,10 @@ root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from app.main import app
+try:
+    from backend.app.main import app
+except ImportError:
+    from app.main import app
 
 # Export app for Vercel Serverless Function entry point
 app = app
