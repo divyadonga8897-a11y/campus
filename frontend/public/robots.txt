@@ -5,4 +5,4 @@ Disallow: /admin/
 Disallow: /_next/
 Disallow: /api/
 
-Sitemap: https://ssiet-campusconnect.vercel.app/sitemap.xml
+Sitemap: https://campus-eight-alpha.vercel.app/sitemap.xml
