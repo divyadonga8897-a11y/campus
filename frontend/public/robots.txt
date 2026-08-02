@@ -1,0 +1,8 @@
+# Robots.txt configuration for CampusConnect AI
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /api/
+
+Sitemap: https://ssiet-campusconnect.vercel.app/sitemap.xml
