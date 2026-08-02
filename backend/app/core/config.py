@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     SECRET_KEY: str = "ssiet_jwt_secret_key_999_super_secured"
     JWT_SECRET: str = ""
+    SUPABASE_JWT_SECRET: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     CORS_ORIGINS: Union[str, List[str]] = [
@@ -31,6 +32,7 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str = ""
     SUPABASE_ANON_KEY: str = ""
     SUPABASE_SERVICE_KEY: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
     EMBEDDING_MODEL_KEYS: str = ""
 
     model_config = SettingsConfigDict(
@@ -42,13 +44,17 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_and_align_keys(self) -> 'Settings':
-        # Fallback JWT_SECRET -> SECRET_KEY
-        if self.JWT_SECRET and (not self.SECRET_KEY or self.SECRET_KEY == "ssiet_jwt_secret_key_999_super_secured"):
+        # Fallback JWT secrets -> SECRET_KEY
+        if self.SUPABASE_JWT_SECRET:
+            self.SECRET_KEY = self.SUPABASE_JWT_SECRET
+        elif self.JWT_SECRET and (not self.SECRET_KEY or self.SECRET_KEY == "ssiet_jwt_secret_key_999_super_secured"):
             self.SECRET_KEY = self.JWT_SECRET
         
         # Fallback Supabase keys
         if not self.SUPABASE_KEY:
-            if self.SUPABASE_SERVICE_KEY:
+            if self.SUPABASE_SERVICE_ROLE_KEY:
+                self.SUPABASE_KEY = self.SUPABASE_SERVICE_ROLE_KEY
+            elif self.SUPABASE_SERVICE_KEY:
                 self.SUPABASE_KEY = self.SUPABASE_SERVICE_KEY
             elif self.SUPABASE_ANON_KEY:
                 self.SUPABASE_KEY = self.SUPABASE_ANON_KEY
@@ -82,7 +88,7 @@ except ValidationError as e:
     class DefaultSettings:
         DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres.zayoiqgkbinpegqmgjeu:[Divya@120531]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres")
         ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
-        SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY") or "ssiet_jwt_secret_key_999_super_secured"
+        SECRET_KEY = os.getenv("SUPABASE_JWT_SECRET") or os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY") or "ssiet_jwt_secret_key_999_super_secured"
         ALGORITHM = "HS256"
         ACCESS_TOKEN_EXPIRE_MINUTES = 1440
         CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
@@ -94,5 +100,5 @@ except ValidationError as e:
         PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "campusconnect-ai")
         WASENDER_API_KEY = os.getenv("WASENDER_API_KEY", "")
         SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-        SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_KEY", "")
+        SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_KEY", "")
     settings = DefaultSettings()
