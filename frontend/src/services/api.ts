@@ -30,7 +30,7 @@ async function apiFetch<T>(endpoint: string, fallback: T): Promise<ApiResponse<T
     const res = await fetch(`${API_BASE}${endpoint}`, {
       next: { revalidate: 60 }, // Cache for 60s
       headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) throw new Error(`API error: ${res.status}`);
     const json = await res.json();
