@@ -130,29 +130,29 @@ export default function CampusAIClient() {
   const renderContent = (text: string) =>
     text.split("**").map((chunk, idx) =>
       idx % 2 === 1
-        ? <strong key={idx} className="font-semibold text-slate-900">{chunk}</strong>
+        ? <strong key={idx} className="font-extrabold text-white">{chunk}</strong>
         : chunk
     );
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
 
       {/* ── Left Sidebar: Topic Categories ── */}
-      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 shrink-0">
+      <aside className="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800 shrink-0">
         {/* Header */}
-        <div className="p-4 border-b border-slate-200">
+        <div className="p-4 border-b border-slate-800">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
               <GraduationCap className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xs font-black text-slate-700 group-hover:text-blue-600 transition-colors">
+            <span className="text-xs font-black text-slate-400 group-hover:text-blue-500 transition-colors">
               ← Back to SSIET
             </span>
           </Link>
         </div>
 
         <div className="flex-1 overflow-y-auto p-3">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-2">
+          <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2 mb-2">
             Browse by Topic
           </div>
 
@@ -165,11 +165,11 @@ export default function CampusAIClient() {
                   onClick={() => setActiveCategory(activeCategory === cat.label ? null : cat.label)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-[13px] font-semibold transition-all cursor-pointer ${
                     activeCategory === cat.label
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      ? "bg-slate-800 text-white"
+                      : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
                   }`}
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
+                  <Icon className="w-4 h-4 shrink-0 text-blue-400" />
                   {cat.label}
                 </button>
               );
@@ -192,7 +192,7 @@ export default function CampusAIClient() {
                       <button
                         key={q}
                         onClick={() => sendMessage(q)}
-                        className="w-full text-left text-[12px] text-slate-500 hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors cursor-pointer"
+                        className="w-full text-left text-[12px] text-slate-400 hover:text-blue-400 hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors cursor-pointer"
                       >
                         {q}
                       </button>
@@ -204,10 +204,10 @@ export default function CampusAIClient() {
         </div>
 
         {/* Bottom: Reset */}
-        <div className="p-3 border-t border-slate-200">
+        <div className="p-3 border-t border-slate-800">
           <button
             onClick={resetChat}
-            className="btn btn-ghost btn-sm w-full text-slate-500"
+            className="w-full py-2 bg-slate-800/50 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
           >
             <RotateCcw className="w-3.5 h-3.5" /> New Conversation
           </button>
@@ -215,34 +215,34 @@ export default function CampusAIClient() {
       </aside>
 
       {/* ── Main Chat Area ── */}
-      <main className="flex flex-col flex-1 min-w-0">
+      <main className="flex flex-col flex-1 min-w-0 bg-[#090d16]">
 
         {/* Top Bar */}
-        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-              <Bot className="w-4 h-4 text-emerald-600" />
+            <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <Bot className="w-4 h-4 text-emerald-400" />
             </div>
             <div>
-              <div className="text-sm font-black text-slate-900 leading-tight">Campus AI — SSIET</div>
-              <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-semibold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="text-sm font-black text-white leading-tight">Campus AI — SSIET</div>
+              <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Online · Instant Answers
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={resetChat} className="btn btn-ghost btn-sm hidden sm:inline-flex">
+            <button onClick={resetChat} className="text-slate-400 hover:text-white flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors hidden sm:inline-flex cursor-pointer">
               <RotateCcw className="w-3.5 h-3.5" /> Clear
             </button>
-            <Link href="/" className="btn btn-secondary btn-sm">
+            <Link href="/" className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer">
               <ArrowLeft className="w-3.5 h-3.5" /> Home
             </Link>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-950">
           {messages.map((msg, i) => {
             const isUser = msg.role === "user";
             return (
@@ -254,15 +254,15 @@ export default function CampusAIClient() {
                 className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}
               >
                 {!isUser && (
-                  <div className="w-7 h-7 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0 mt-0.5">
-                    <Bot className="w-3.5 h-3.5 text-emerald-600" />
+                  <div className="w-7 h-7 rounded-full bg-emerald-950 border border-emerald-850/80 flex items-center justify-center shrink-0 mt-0.5">
+                    <Bot className="w-3.5 h-3.5 text-emerald-400" />
                   </div>
                 )}
                 <div
                   className={`max-w-[75%] sm:max-w-xl px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                     isUser
-                      ? "bg-blue-600 text-white rounded-tr-none"
-                      : "bg-white border border-slate-200 text-slate-700 rounded-tl-none shadow-sm"
+                      ? "bg-gradient-to-tr from-blue-600 to-indigo-500 text-white rounded-tr-none shadow-md"
+                      : "bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none shadow-sm font-medium"
                   }`}
                   style={{ whiteSpace: "pre-wrap" }}
                 >
@@ -279,13 +279,13 @@ export default function CampusAIClient() {
               animate={{ opacity: 1, y: 0 }}
               className="flex gap-3 justify-start"
             >
-              <div className="w-7 h-7 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
-                <Bot className="w-3.5 h-3.5 text-emerald-600" />
+              <div className="w-7 h-7 rounded-full bg-emerald-950 border border-emerald-850/80 flex items-center justify-center shrink-0">
+                <Bot className="w-3.5 h-3.5 text-emerald-400" />
               </div>
-              <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-4 py-3 flex items-center gap-1 shadow-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl rounded-tl-none px-4 py-3 flex items-center gap-1 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             </motion.div>
           )}
@@ -294,7 +294,7 @@ export default function CampusAIClient() {
         </div>
 
         {/* Input Area */}
-        <div className="shrink-0 bg-white border-t border-slate-200 p-4">
+        <div className="shrink-0 bg-slate-900 border-t border-slate-800 p-4">
           {/* Quick chips — only show when fresh */}
           {messages.length <= 1 && (
             <div className="flex flex-wrap gap-1.5 mb-3">
@@ -302,7 +302,7 @@ export default function CampusAIClient() {
                 <button
                   key={q}
                   onClick={() => sendMessage(q)}
-                  className="text-[11px] px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                  className="text-[11px] px-3 py-1.5 rounded-full border border-slate-850 bg-slate-950 text-slate-400 hover:border-blue-500 hover:text-blue-400 hover:bg-slate-900 transition-colors cursor-pointer"
                 >
                   {q}
                 </button>
@@ -319,7 +319,7 @@ export default function CampusAIClient() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask anything about SSIET — courses, fees, hostel, placements..."
-              className="input resize-none flex-1 min-h-[44px] max-h-32 leading-relaxed"
+              className="resize-none flex-1 min-h-[44px] max-h-32 leading-relaxed bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 placeholder-slate-500 font-sans"
               style={{ height: "auto" }}
               disabled={loading}
             />
@@ -327,13 +327,13 @@ export default function CampusAIClient() {
               type="submit"
               disabled={loading || !input.trim()}
               id="campus-ai-send-btn"
-              className="btn btn-primary shrink-0 h-11 w-11 p-0 rounded-xl disabled:opacity-40"
+              className="btn btn-primary shrink-0 h-11 w-11 p-0 rounded-xl bg-blue-600 hover:bg-blue-700 border-none text-white disabled:opacity-40 cursor-pointer flex items-center justify-center shadow-md shadow-blue-600/10"
               aria-label="Send message"
             >
               <Send className="w-4 h-4" />
             </button>
           </form>
-          <p className="text-center text-[10px] text-slate-400 mt-2">
+          <p className="text-center text-[10px] text-slate-500 mt-2">
             AI answers are based on SSIET college data. Verify critical details with the admissions office.
           </p>
         </div>
