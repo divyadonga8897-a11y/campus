@@ -12,11 +12,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     CORS_ORIGINS: Union[str, List[str]] = [
         "http://localhost:3000",
-        "https://campus-eight-alpha.vercel.app",
-        "https://campus-connect-ai-5b5p.vercel.app",
-        "https://campus-connect-ai-lake.vercel.app",
-        "https://campusconnect-ai2.vercel.app",
-        "*"
+        "https://campus-eight-alpha.vercel.app"
     ] 
     
     # Upload configuration
