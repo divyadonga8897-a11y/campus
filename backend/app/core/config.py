@@ -12,11 +12,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     CORS_ORIGINS: Union[str, List[str]] = [
         "http://localhost:3000",
-        "https://campus-eight-alpha.vercel.app"
+        "https://campus-eight-alpha.vercel.app",
+        "*"
     ] 
     
     # Upload configuration
-    UPLOAD_DIR: str = "public/uploads"
+    UPLOAD_DIR: str = "/tmp/uploads"
     MAX_UPLOAD_SIZE: int = 5242880  # 5MB
     
     # AI & Service API Keys
@@ -46,8 +47,8 @@ except ValidationError as e:
         SECRET_KEY = os.getenv("SECRET_KEY", "ssiet_jwt_secret_key_999_super_secured")
         ALGORITHM = "HS256"
         ACCESS_TOKEN_EXPIRE_MINUTES = 1440
-        CORS_ORIGINS = ["*"]
-        UPLOAD_DIR = "public/uploads"
+        CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
+        UPLOAD_DIR = "/tmp/uploads"
         MAX_UPLOAD_SIZE = 5242880
         OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
         GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")

@@ -79,6 +79,12 @@ app.add_middleware(
 def on_startup():
     print("\n--- Starting FastAPI Application ---")
     print(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
+    # Skip full db seeding on Vercel Serverless to prevent invocation timeout & heavy schema migration overhead
+    is_vercel = os.getenv("VERCEL") == "1" or os.getenv("VERCEL_ENV") is not None
+    if is_vercel:
+        print("[Vercel Environment Detected] Skipping heavy database initialization/seeding on serverless cold start.")
+        return
+        
     print("Database URL loaded from configuration settings.")
     print("Connecting to database...")
     db = SessionLocal()
