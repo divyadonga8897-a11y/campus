@@ -1,3 +1,4 @@
+import { apiFetch, API_BASE } from "./api";
 import type { ApiResponse } from "@/types";
 
 export interface ProcessStep {
@@ -59,7 +60,6 @@ export interface EnquiryPayload {
   message: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Fallbacks
 const fallbackProcess: ProcessStep[] = [
@@ -96,20 +96,6 @@ const fallbackContacts: ContactDetail[] = [
   }
 ];
 
-async function apiFetch<T>(endpoint: string, fallback: T): Promise<ApiResponse<T>> {
-  try {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
-      next: { revalidate: 60 },
-      headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) throw new Error("API Connection down");
-    const json = await res.json();
-    return { success: true, data: json.data ?? json };
-  } catch {
-    return { success: true, data: fallback };
-  }
-}
 
 export const enquiryService = {
   getAdmissionProcess: () => apiFetch<ProcessStep[]>("/api/v1/admission/process", fallbackProcess),

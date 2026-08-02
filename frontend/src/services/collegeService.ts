@@ -1,3 +1,4 @@
+import { apiFetch } from "./api";
 // ============================================================
 // College Information Management Service
 // Connects to FastAPI college endpoints
@@ -71,7 +72,6 @@ export interface GalleryItem {
   created_at?: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // --- Static Fallbacks for offline resilience ---
 const fallbackProfile: CollegeProfile = {
@@ -176,20 +176,6 @@ const fallbackGallery: GalleryItem[] = [
   { id: "gal-12", title: "Best Engineering College Award", category: "achievements", image_url: "/images/campus/main-building.webp", description: "Receiving academic excellence awards from state council representatives." }
 ];
 
-async function apiFetch<T>(endpoint: string, fallback: T): Promise<ApiResponse<T>> {
-  try {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
-      next: { revalidate: 60 },
-      headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) throw new Error("API Connection down");
-    const json = await res.json();
-    return { success: true, data: json.data ?? json };
-  } catch {
-    return { success: true, data: fallback };
-  }
-}
 
 export const collegeService = {
   getCollege: () => apiFetch<any>("/api/v1/college", {

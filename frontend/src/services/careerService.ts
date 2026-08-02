@@ -1,3 +1,4 @@
+import { apiFetch } from "./api";
 import type { ApiResponse } from "@/types";
 
 export interface PlacementOverviewData {
@@ -92,7 +93,6 @@ export interface CareerResourceDetail {
   link: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Fallbacks
 const fallbackOverview: PlacementOverviewData[] = [
@@ -146,20 +146,6 @@ const fallbackResources: CareerResourceDetail[] = [
   { id: "res-dsa", title: "Data Structures & Algorithms Interview Sheet", description: "A handpicked directory of 150 most common coding questions.", resource_type: "Preparation Guide", link: "#" }
 ];
 
-async function apiFetch<T>(endpoint: string, fallback: T): Promise<ApiResponse<T>> {
-  try {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
-      next: { revalidate: 60 },
-      headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) throw new Error("API Connection down");
-    const json = await res.json();
-    return { success: true, data: json.data ?? json };
-  } catch {
-    return { success: true, data: fallback };
-  }
-}
 
 export const careerService = {
   getPlacementOverview: () => apiFetch<PlacementOverviewData[]>("/api/v1/career/placements", fallbackOverview),

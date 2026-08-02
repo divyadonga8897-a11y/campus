@@ -1,3 +1,4 @@
+import { apiFetch, API_BASE } from "./api";
 import type { ApiResponse } from "@/types";
 
 export interface ChatMessage {
@@ -5,7 +6,6 @@ export interface ChatMessage {
   content: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Detailed local mock response generator in case API is unreachable
 function getLocalMockResponse(message: string): string {

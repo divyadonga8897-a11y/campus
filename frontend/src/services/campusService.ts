@@ -1,3 +1,4 @@
+import { apiFetch } from "./api";
 import type { ApiResponse } from "@/types";
 
 export interface CampusLocation {
@@ -99,7 +100,6 @@ export interface CampusEventItem {
   image_url: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Robust offline fallbacks
 const fallbackLocations: CampusLocation[] = [
@@ -221,20 +221,6 @@ const fallbackEvents: CampusEventItem[] = [
   }
 ];
 
-async function apiFetch<T>(endpoint: string, fallback: T): Promise<ApiResponse<T>> {
-  try {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
-      next: { revalidate: 60 },
-      headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) throw new Error("API Connection down");
-    const json = await res.json();
-    return { success: true, data: json.data ?? json };
-  } catch {
-    return { success: true, data: fallback };
-  }
-}
 
 export const campusService = {
   getInfrastructure: (facilityType?: string) => {

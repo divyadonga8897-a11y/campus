@@ -1,3 +1,4 @@
+import { apiFetch } from "./api";
 // ============================================================
 // Academic Catalog Service
 // Manages courses, departments, fee structures, admissions, and scholarships
@@ -110,7 +111,6 @@ export interface ScholarshipItem {
   created_at?: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // --- Static Fallbacks for offline resilience ---
 const fallbackDepartments: DepartmentSummary[] = [
@@ -193,26 +193,6 @@ const fallbackScholarships: ScholarshipItem[] = [
   }
 ];
 
-async function apiFetch<T>(endpoint: string, fallback: T): Promise<ApiResponse<T>> {
-  const startTime = Date.now();
-  try {
-    console.log(`[academicService] Starting fetch for ${endpoint}...`);
-    const res = await fetch(`${API_BASE}${endpoint}`, {
-      next: { revalidate: 60 },
-      headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(3000),
-    });
-    const duration = Date.now() - startTime;
-    console.log(`[academicService] Fetch ${endpoint} finished in ${duration}ms, status=${res.status}`);
-    if (!res.ok) throw new Error(`API Connection down (status: ${res.status})`);
-    const json = await res.json();
-    return { success: true, data: json.data ?? json };
-  } catch (err: any) {
-    const duration = Date.now() - startTime;
-    console.log(`[academicService] Fetch ${endpoint} FAILED/TIMEDOUT in ${duration}ms. Error: ${err?.message || err}`);
-    return { success: true, data: fallback };
-  }
-}
 
 export const academicService = {
   getDepartments: () => apiFetch<DepartmentSummary[]>("/api/v1/academic/departments", fallbackDepartments),

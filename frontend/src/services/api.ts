@@ -1,7 +1,6 @@
 // ============================================================
 // API Service Layer for CampusConnect AI
-// Connects to FastAPI backend at localhost:8000
-// Falls back to constants if backend unavailable
+// Connects to FastAPI backend
 // ============================================================
 
 import {
@@ -17,28 +16,60 @@ import {
 } from "@/constants/collegeData";
 import type { ApiResponse } from "@/types";
 
-const getApiBase = () => {
+export const getApiBase = () => {
   const envVal = process.env.NEXT_PUBLIC_API_URL;
-  if (!envVal) return "http://localhost:8000";
-  if (envVal.includes(",")) return envVal.split(",")[0].trim();
-  return envVal.trim();
+  const isProduction = process.env.NODE_ENV === "production";
+  
+  if (!envVal) {
+    if (isProduction) {
+      console.warn("WARNING: NEXT_PUBLIC_API_URL is missing in production environment!");
+    }
+    return "http://localhost:8000";
+  }
+  
+  let val = envVal.trim();
+  if (val.includes(",")) {
+    val = val.split(",")[0].trim();
+  }
+  
+  // Strip trailing slashes
+  val = val.replace(/\/+$/, "");
+  
+  return val;
 };
-const API_BASE = getApiBase();
 
-async function apiFetch<T>(endpoint: string, fallback: T): Promise<ApiResponse<T>> {
+export const API_BASE = getApiBase();
+
+export async function apiFetch<T>(endpoint: string, fallback: T): Promise<ApiResponse<T>> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    
+    // Normalize endpoint to prevent duplicate slashes
+    const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    const url = `${API_BASE}${cleanEndpoint}`;
+    
+    const res = await fetch(url, {
       next: { revalidate: 60 }, // Cache for 60s
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,
     }).finally(() => clearTimeout(timeoutId));
-    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    
+    if (!res.ok) {
+      throw new Error(`API error: HTTP ${res.status}`);
+    }
+    
     const json = await res.json();
     return { success: true, data: json.data ?? json };
-  } catch {
-    // Fallback to local constants when backend is unavailable
+  } catch (err: any) {
+    console.error(`[API Fetch Failure] Endpoint: ${endpoint}, Error:`, err);
+    
+    // In production, do not silently fall back to mock data
+    if (process.env.NODE_ENV === "production") {
+      return { success: false, data: fallback, error: err.message || "Connection error" };
+    }
+    
+    // In development/local, fall back to local constants
     return { success: true, data: fallback };
   }
 }

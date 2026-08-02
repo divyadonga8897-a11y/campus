@@ -1,3 +1,4 @@
+import { apiFetch } from "./api";
 import type { ApiResponse } from "@/types";
 
 export interface Internship {
@@ -8,7 +9,6 @@ export interface Internship {
   description: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Local static fallbacks
 const fallbackInternships: Internship[] = [
@@ -18,20 +18,6 @@ const fallbackInternships: Internship[] = [
   { id: "intern-4", company_name: "DRDO", domain: "Defense Research", duration: "6 Months", description: "Government research internships allowing students to collaborate on embedded systems and telemetry data processing models." }
 ];
 
-async function apiFetch<T>(endpoint: string, fallback: T): Promise<ApiResponse<T>> {
-  try {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
-      next: { revalidate: 60 },
-      headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) throw new Error("API Connection down");
-    const json = await res.json();
-    return { success: true, data: json.data ?? json };
-  } catch {
-    return { success: true, data: fallback };
-  }
-}
 
 export const internshipService = {
   getInternships: () => apiFetch("/api/v1/internships", fallbackInternships),
