@@ -15,10 +15,15 @@ from app.services.rag_service import RagService
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin Knowledge Base"])
 rag_service = RagService()
 
-UPLOAD_DIR = "public/uploads/kb"
+from app.core.config import settings
 
-# Ensure upload directory exists
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+UPLOAD_DIR = os.path.join(settings.UPLOAD_DIR, "kb")
+
+# Ensure upload directory exists safely on writable temporary directory
+try:
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+except Exception as e:
+    print(f"WARNING: Could not create upload directory {UPLOAD_DIR}: {e}")
 
 def verify_admin(current_user: User):
     if current_user.role not in ["super_admin", "ADMIN"]:

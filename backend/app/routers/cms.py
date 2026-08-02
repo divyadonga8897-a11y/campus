@@ -69,10 +69,14 @@ def upload_media(file: UploadFile = File(...), current_user: User = Depends(get_
     if size > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large. Maximum allowed size is 5MB")
 
-    # Create public/uploads directory if not exists
-    upload_dir = os.path.join("public", "uploads")
-    if not os.path.exists(upload_dir):
+    from app.core.config import settings
+    
+    # Create writable directory safely
+    upload_dir = settings.UPLOAD_DIR
+    try:
         os.makedirs(upload_dir, exist_ok=True)
+    except Exception as e:
+        print(f"WARNING: Could not create upload directory {upload_dir}: {e}")
     
     file_path = os.path.join(upload_dir, file.filename)
     with open(file_path, "wb") as buffer:
