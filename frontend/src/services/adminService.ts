@@ -527,10 +527,12 @@ export const adminService = {
 
   getSystemHealth: async (): Promise<ApiResponse<any>> => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       const res = await fetch(`${API_BASE}/health`, {
         headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(5000),
-      });
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutId));
       const json = await res.json();
       return { success: true, data: json };
     } catch (err: any) {

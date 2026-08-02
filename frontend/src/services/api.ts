@@ -27,11 +27,13 @@ const API_BASE = getApiBase();
 
 async function apiFetch<T>(endpoint: string, fallback: T): Promise<ApiResponse<T>> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     const res = await fetch(`${API_BASE}${endpoint}`, {
       next: { revalidate: 60 }, // Cache for 60s
       headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(15000),
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
     if (!res.ok) throw new Error(`API error: ${res.status}`);
     const json = await res.json();
     return { success: true, data: json.data ?? json };
