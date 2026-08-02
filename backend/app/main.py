@@ -64,12 +64,27 @@ if isinstance(origins, str):
         origins = ["*"]
     else:
         origins = [o.strip() for o in origins.split(",") if o.strip()]
+
+# Add development origins for local testing
+dev_origins = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000", "http://127.0.0.1:8000"]
+for do in dev_origins:
+    if do not in origins:
+        origins.append(do)
+
+# Remove wildcard if credentials are allowed to prevent Starlette RuntimeError
+allow_credentials = True
+if "*" in origins:
+    if len(origins) > 1:
+        origins.remove("*")
+    else:
+        allow_credentials = False
+
 print("CORS ALLOWED ORIGINS:", origins)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -33,16 +33,36 @@ export const adminService = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+
+      if (!res.ok) {
+        let errorMsg = "Authentication failed";
+        try {
+          const json = await res.json();
+          errorMsg = json.detail || json.message || errorMsg;
+        } catch {
+          if (res.status === 401) {
+            errorMsg = "Invalid email or password.";
+          } else if (res.status === 500) {
+            errorMsg = "Server error. Please contact administrator.";
+          } else {
+            errorMsg = `HTTP Error ${res.status}`;
+          }
+        }
+        throw new Error(errorMsg);
+      }
+
       const json = await res.json();
-      if (!res.ok) throw new Error(json.detail || "Authentication failed");
-      
       if (json.data?.access_token) {
         localStorage.setItem("admin_token", json.data.access_token);
         localStorage.setItem("admin_role", json.data.user_role);
       }
       return { success: true, data: json.data };
     } catch (err: any) {
-      return { success: false, error: err.message || "Connection error" };
+      let errorMsg = err.message || "Connection error";
+      if (errorMsg.includes("Failed to fetch") || errorMsg.includes("network error") || errorMsg.includes("Load failed")) {
+        errorMsg = "Unable to connect to server. Please try again.";
+      }
+      return { success: false, error: errorMsg };
     }
   },
 
