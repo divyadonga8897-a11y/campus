@@ -219,7 +219,8 @@ def get_whatsapp_conversations(
             "ai_reply": ai_reply,
             "last_interaction": s.last_interaction,
             "conversation_length": len(s.history) // 2 if s.history else 0,
-            "total_messages": len(s.history) if s.history else 0
+            "total_messages": len(s.history) if s.history else 0,
+            "history": s.history or []
         })
         
     return ApiResponse(success=True, data=res_list)
@@ -259,3 +260,145 @@ def get_whatsapp_logs(
         })
         
     return ApiResponse(success=True, data=res_list)
+
+from pydantic import BaseModel
+
+class UserSendSchema(BaseModel):
+    phone_number: str
+    message: str
+
+class AdminSendSchema(BaseModel):
+    phone_number: str
+    message: str
+
+@router.get("/session/{phone_number}", response_model=ApiResponse[Dict[str, Any]])
+def get_session_history(phone_number: str, db: Session = Depends(get_db)):
+    clean_sender = "".join(filter(str.isdigit, phone_number))
+    if not clean_sender:
+        raise HTTPException(status_code=400, detail="Invalid phone number")
+        
+    session = db.query(WhatsappChatSession).filter(
+        WhatsappChatSession.phone_number == clean_sender
+    ).first()
+    
+    if not session:
+        return ApiResponse(success=True, data={"phone_number": clean_sender, "history": []})
+        
+    return ApiResponse(success=True, data={"phone_number": clean_sender, "history": session.history or []})
+
+@router.post("/session/send", response_model=ApiResponse[Dict[str, Any]])
+def send_user_message(payload: UserSendSchema, db: Session = Depends(get_db)):
+    clean_sender = "".join(filter(str.isdigit, payload.phone_number))
+    if not clean_sender:
+        raise HTTPException(status_code=400, detail="Invalid phone number")
+        
+    session = db.query(WhatsappChatSession).filter(
+        WhatsappChatSession.phone_number == clean_sender
+    ).first()
+    
+    if not session:
+        session = WhatsappChatSession(
+            phone_number=clean_sender,
+            history=[],
+            last_interaction=""
+        )
+        db.add(session)
+        
+    # Append user message
+    new_history = list(session.history or [])
+    new_history.append({
+        "role": "user",
+        "content": payload.message,
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    })
+    
+    # Query AI
+    start_time = time.time()
+    try:
+        response_text = rag_service.query_assistant(payload.message, new_history[:-1], db)
+        status_msg = "Success"
+    except Exception as e:
+        response_text = "Sorry, I encountered an error while processing your request. Please try again."
+        status_msg = "Failed"
+        print(f"[Website-WhatsApp] AI query failed: {e}")
+        
+    latency = time.time() - start_time
+    
+    # Append AI response
+    new_history.append({
+        "role": "assistant",
+        "content": response_text,
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    })
+    
+    session.history = new_history
+    session.last_interaction = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Log message
+    log_item = WhatsappMessageLog(
+        phone_number=clean_sender,
+        query=payload.message,
+        response=response_text,
+        status=status_msg,
+        timestamp=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+        latency=latency
+    )
+    db.add(log_item)
+    db.commit()
+    
+    return ApiResponse(success=True, data={"phone_number": clean_sender, "history": session.history})
+
+@router.post("/admin/send", response_model=ApiResponse[Dict[str, Any]])
+def admin_send_message(
+    payload: AdminSendSchema,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    verify_admin(current_user)
+    
+    clean_sender = "".join(filter(str.isdigit, payload.phone_number))
+    if not clean_sender:
+        raise HTTPException(status_code=400, detail="Invalid phone number")
+        
+    session = db.query(WhatsappChatSession).filter(
+        WhatsappChatSession.phone_number == clean_sender
+    ).first()
+    
+    if not session:
+        session = WhatsappChatSession(
+            phone_number=clean_sender,
+            history=[],
+            last_interaction=""
+        )
+        db.add(session)
+        
+    new_history = list(session.history or [])
+    new_history.append({
+        "role": "assistant",
+        "content": payload.message,
+        "sender": "admin",
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    })
+    
+    session.history = new_history
+    session.last_interaction = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Send via wasender if possible
+    try:
+        wasender_service.send_message(clean_sender, payload.message)
+    except Exception as e:
+        print(f"[Admin-Send] Wasender delivery failed or not configured: {e}")
+        
+    # Log
+    log_item = WhatsappMessageLog(
+        phone_number=clean_sender,
+        query="[ADMIN MANUAL REPLY]",
+        response=payload.message,
+        status="Success",
+        timestamp=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+        latency=0.0
+    )
+    db.add(log_item)
+    db.commit()
+    
+    return ApiResponse(success=True, data={"phone_number": clean_sender, "history": session.history})

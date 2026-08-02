@@ -15,7 +15,7 @@ import {
   GraduationCap, LayoutDashboard, Building2, BookOpen, Coins, Mail, 
   Database, Settings, Users, LogOut, CheckCircle2, AlertTriangle, 
   Trash2, RefreshCw, UploadCloud, ShieldAlert, Sparkles, Activity, 
-  Shield, HeartPulse, Bot, Calendar, Clock, ListFilter, Search, FileText, Check, XCircle
+  Shield, HeartPulse, Bot, Calendar, Clock, ListFilter, Search, FileText, Check, XCircle, Send
 } from "lucide-react";
 
 const deptSchema = z.object({
@@ -77,6 +77,8 @@ export default function AdminDashboardClient({ defaultView = "dashboard" }: { de
   const [aiLoading, setAiLoading] = useState(false);
   const [waSearchQuery, setWaSearchQuery] = useState("");
   const [selectedConvo, setSelectedConvo] = useState<any>(null);
+  const [convoReplyText, setConvoReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
 
   // RAG Playground state
   const [playgroundQuery, setPlaygroundQuery] = useState("");
@@ -432,6 +434,54 @@ export default function AdminDashboardClient({ defaultView = "dashboard" }: { de
     }
     setAiLoading(false);
   };
+
+  const handleSendAdminReply = async () => {
+    if (!convoReplyText.trim() || !selectedConvo || sendingReply) return;
+    setSendingReply(true);
+    try {
+      const res = await adminService.sendWhatsappAdminMessage(selectedConvo.phone_number, convoReplyText);
+      if (res.success) {
+        setConvoReplyText("");
+        // Reload conversations to update chat logs
+        const updatedConversations = await adminService.getWhatsappConversations();
+        if (updatedConversations.success && updatedConversations.data) {
+          setWaConversations(updatedConversations.data);
+          const updatedConvo = updatedConversations.data.find((c: any) => c.phone_number === selectedConvo.phone_number);
+          if (updatedConvo) {
+            setSelectedConvo(updatedConvo);
+          }
+        }
+        triggerAlert("Reply sent successfully!");
+      } else {
+        triggerAlert(res.error || "Failed to send message", "error");
+      }
+    } catch (err: any) {
+      triggerAlert(err.message || "An unexpected error occurred", "error");
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentView !== "ai-management" || aiTab !== "ai-conversations" || !selectedConvo) return;
+    
+    const interval = setInterval(async () => {
+      try {
+        const res = await adminService.getWhatsappConversations();
+        if (res.success && res.data) {
+          setWaConversations(res.data);
+          const updatedConvo = res.data.find((c: any) => c.phone_number === selectedConvo.phone_number);
+          if (updatedConvo) {
+            setSelectedConvo(updatedConvo);
+          }
+        }
+      } catch (err) {
+        console.error("Error polling conversations:", err);
+      }
+    }, 4000);
+    
+    return () => clearInterval(interval);
+  }, [currentView, aiTab, selectedConvo]);
 
   const sidebarMenu = [
     { id: "dashboard", label: "Overview", icon: LayoutDashboard },
@@ -2230,48 +2280,70 @@ export default function AdminDashboardClient({ defaultView = "dashboard" }: { de
                                 </button>
                               </div>
 
-                              <div className="pt-4 space-y-6 max-h-[55vh] overflow-y-auto">
-                                <div className="space-y-4">
-                                  {/* Student message block */}
-                                  <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl rounded-br-sm max-w-[85%] ml-auto text-right animate-fadeIn">
-                                    <p className="text-xs text-emerald-800 leading-relaxed font-medium">{selectedConvo.last_message || "What is the fee?"}</p>
-                                    <div className="flex justify-end items-center gap-1.5 pt-1.5">
-                                      <span className="text-[8px] text-emerald-500 font-bold uppercase tracking-wider">Student</span>
-                                      <span className="text-[8px] text-emerald-500/60 font-mono">{selectedConvo.last_interaction}</span>
-                                    </div>
-                                  </div>
-
-                                  {/* AI Response block with RAG details */}
-                                  <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl rounded-bl-sm max-w-[85%] text-left space-y-3 animate-fadeIn">
-                                    <p className="text-xs text-text-dark leading-relaxed font-normal whitespace-pre-line">{selectedConvo.ai_reply || "—"}</p>
-                                    
-                                    {/* RAG Monitoring Info */}
-                                    <div className="bg-white border border-slate-200/60 rounded-xl p-3.5 space-y-2.5 text-[10px] font-sans">
-                                      <div className="flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
-                                        <Badge variant="info">RAG RETRIEVAL & MONITOR</Badge>
-                                        <span className="text-[8px] text-text-gray font-mono font-bold">1.4 seconds latency</span>
+                              {/* Scrollable Conversation Chat Messages */}
+                              <div className="pt-2 space-y-4 max-h-[50vh] overflow-y-auto pr-1 flex flex-col gap-2">
+                                {(selectedConvo.history || []).map((msg: any, idx: number) => {
+                                  const isUser = msg.role === "user";
+                                  const isAdmin = msg.sender === "admin";
+                                  
+                                  return (
+                                    <div key={idx} className={`flex flex-col ${isUser ? "items-end text-right" : "items-start text-left"} space-y-1`}>
+                                      <div className={`p-3 rounded-2xl max-w-[85%] text-xs leading-relaxed ${
+                                        isUser 
+                                          ? "bg-emerald-50 text-emerald-800 border border-emerald-100/80 rounded-br-sm" 
+                                          : isAdmin
+                                            ? "bg-blue-50 text-blue-800 border border-blue-100/80 rounded-bl-sm"
+                                            : "bg-slate-50 text-text-dark border border-slate-100 rounded-bl-sm"
+                                      }`}>
+                                        <p className="whitespace-pre-line font-medium">{msg.content}</p>
                                       </div>
-                                      
-                                      <div className="space-y-1.5">
-                                        <div className="flex justify-between items-center">
-                                          <span className="font-bold text-text-gray uppercase">Retrieved Documents</span>
-                                          <span className="font-mono font-extrabold text-indigo-600">5 matched chunks</span>
-                                        </div>
-                                        <div className="bg-slate-50 p-2 rounded-lg space-y-1 border border-slate-100">
-                                          <div className="flex items-center justify-between font-mono text-[9px]">
-                                            <span className="text-text-dark truncate max-w-[180px]">admission_structure_2026.md</span>
-                                            <span className="text-emerald-600 font-bold">92% similarity</span>
-                                          </div>
-                                        </div>
+                                      <div className="flex items-center gap-1.5 px-1.5">
+                                        <span className="text-[8px] text-text-gray font-bold uppercase tracking-wider">
+                                          {isUser ? "Student" : isAdmin ? "Admin (You)" : "CampusConnect AI"}
+                                        </span>
+                                        {msg.timestamp && (
+                                          <span className="text-[8px] text-text-gray/40 font-mono font-medium">
+                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                          </span>
+                                        )}
                                       </div>
                                     </div>
-
-                                    <div className="flex items-center gap-1.5 pt-1">
-                                      <span className="text-[8px] text-primary font-bold uppercase tracking-wider">CampusConnect AI</span>
-                                      <span className="text-[8px] text-text-gray/50 font-mono">Groq Llama 3.3 70B</span>
-                                    </div>
+                                  );
+                                })}
+                                {(selectedConvo.history || []).length === 0 && (
+                                  <div className="p-8 text-center text-[10px] uppercase font-bold text-text-gray tracking-wider">
+                                    No messages in this conversation yet.
                                   </div>
-                                </div>
+                                )}
+                              </div>
+
+                              {/* Admin Response Box */}
+                              <div className="border-t border-slate-100 pt-4 flex gap-3 items-end">
+                                <textarea
+                                  value={convoReplyText}
+                                  onChange={(e) => setConvoReplyText(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                      e.preventDefault();
+                                      handleSendAdminReply();
+                                    }
+                                  }}
+                                  placeholder="Type your reply here to send to the student (Press Enter to Send)..."
+                                  rows={2}
+                                  className="flex-grow px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none font-sans"
+                                />
+                                <button
+                                  onClick={handleSendAdminReply}
+                                  disabled={!convoReplyText.trim() || sendingReply}
+                                  className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider shrink-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-600/10"
+                                >
+                                  {sendingReply ? (
+                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Send className="w-3.5 h-3.5" />
+                                  )}
+                                  <span>Send Reply</span>
+                                </button>
                               </div>
                             </Card>
                           ) : (

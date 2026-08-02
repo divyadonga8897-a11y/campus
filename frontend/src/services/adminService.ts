@@ -545,6 +545,21 @@ export const adminService = {
     }
   },
 
+  sendWhatsappAdminMessage: async (phoneNumber: string, message: string): Promise<ApiResponse<any>> => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/whatsapp/admin/send`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ phone_number: phoneNumber, message }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.detail || "Failed to send message");
+      return { success: true, data: json.data };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  },
+
   getSystemHealth: async (): Promise<ApiResponse<any>> => {
     try {
       const controller = new AbortController();
