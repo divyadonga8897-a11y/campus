@@ -132,7 +132,7 @@ def update_department(id: str, name: str = Form(...), description: str = Form(..
 
 @router.delete("/departments/{id}")
 def delete_department(id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role != "ADMIN":
+    if current_user.role not in ["ADMIN", "super_admin"]:
         raise HTTPException(status_code=403, detail="Only ADMIN users can execute delete actions")
     dept = db.query(Department).filter(Department.id == id).first()
     if not dept:
@@ -177,7 +177,7 @@ def update_course(id: str, name: str = Form(...), duration: str = Form(...), int
 
 @router.delete("/courses/{id}")
 def delete_course(id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role != "ADMIN":
+    if current_user.role not in ["ADMIN", "super_admin"]:
         raise HTTPException(status_code=403, detail="Only ADMIN users can execute delete actions")
     course = db.query(Course).filter(Course.id == id).first()
     if not course:
@@ -220,7 +220,7 @@ def update_fee(id: str, tuition_fee: float = Form(...), hostel_fee: float = Form
 
 @router.delete("/fees/{id}")
 def delete_fee(id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role != "ADMIN":
+    if current_user.role not in ["ADMIN", "super_admin"]:
         raise HTTPException(status_code=403, detail="Only ADMIN users can execute delete actions")
     fee = db.query(FeeStructure).filter(FeeStructure.id == id).first()
     if not fee:
@@ -248,7 +248,7 @@ def create_admission_step(id: str = Form(...), title: str = Form(...), descripti
 
 @router.delete("/admissions/process/{id}")
 def delete_admission_step(id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role != "ADMIN":
+    if current_user.role not in ["ADMIN", "super_admin"]:
         raise HTTPException(status_code=403, detail="Only ADMIN users can execute delete actions")
     step = db.query(AdmissionProcess).filter(AdmissionProcess.id == id).first()
     if not step:
@@ -280,7 +280,7 @@ def create_placement_stat(id: str = Form(...), year: int = Form(...), dept_id: s
 
 @router.delete("/placements/{id}")
 def delete_placement_stat(id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role != "ADMIN":
+    if current_user.role not in ["ADMIN", "super_admin"]:
         raise HTTPException(status_code=403, detail="Only ADMIN users can execute delete actions")
     stat = db.query(PlacementStatistics).filter(PlacementStatistics.id == id).first()
     if not stat:
@@ -308,7 +308,7 @@ def create_gallery_image(id: str = Form(...), title: str = Form(...), category: 
 
 @router.delete("/gallery/{id}")
 def delete_gallery_image(id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role != "ADMIN":
+    if current_user.role not in ["ADMIN", "super_admin"]:
         raise HTTPException(status_code=403, detail="Only ADMIN users can execute delete actions")
     item = db.query(Gallery).filter(Gallery.id == id).first()
     if not item:

@@ -12,13 +12,16 @@ from app.models.models import (
 )
 
 def init_db(db: Session):
+    # Determine current engine bound to this session
+    current_engine = db.get_bind() if hasattr(db, "get_bind") else engine
+
     # Create all tables if they don't exist
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=current_engine)
 
     # Dynamic migration helper: Add error_message column if missing in database
     try:
         from sqlalchemy import text
-        if engine.name == "postgresql":
+        if current_engine.name == "postgresql":
             db.execute(text("ALTER TABLE knowledge_documents ADD COLUMN IF NOT EXISTS error_message VARCHAR"))
         else: # sqlite
             cursor = db.execute(text("PRAGMA table_info(knowledge_documents)"))
