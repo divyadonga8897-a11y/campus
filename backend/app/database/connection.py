@@ -56,16 +56,12 @@ def create_app_engine():
         return pg_engine
     except Exception as e:
         print(f"[Database] Notice: PostgreSQL connection failed: {e}")
-        if settings.ENVIRONMENT != "production":
-            # In development, fall back to persistent local SQLite so the admin portal and all features function seamlessly
-            db_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-            db_file_path = os.path.join(db_dir, "campusconnect_dev.db")
-            local_sqlite_url = f"sqlite:///{db_file_path}"
-            print(f"[Database] Local development fallback active: {local_sqlite_url}")
-            return create_engine(local_sqlite_url, connect_args={"check_same_thread": False})
-        else:
-            # In production, preserve PostgreSQL engine
-            return pg_engine
+        # Fall back to SQLite so serverless deployments and development environments remain resilient without throwing 500
+        db_dir = "/tmp" if os.path.exists("/tmp") else os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        db_file_path = os.path.join(db_dir, "campusconnect_dev.db")
+        local_sqlite_url = f"sqlite:///{db_file_path}"
+        print(f"[Database] Resilient fallback engine active: {local_sqlite_url}")
+        return create_engine(local_sqlite_url, connect_args={"check_same_thread": False})
 
 engine = create_app_engine()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -271,41 +271,47 @@ class AdminSendSchema(BaseModel):
     phone_number: str
     message: str
 
+def _sanitize_session_id(raw_id: str) -> str:
+    """Extract numeric digits or fallback to sanitized alphanumeric visitor ID."""
+    digits = "".join(filter(str.isdigit, raw_id or ""))
+    if digits:
+        return digits
+    safe_alnum = "".join(c for c in (raw_id or "") if c.isalnum() or c in "-_")
+    return safe_alnum if safe_alnum else "visitor-guest"
+
 @router.get("/session/{phone_number}", response_model=ApiResponse[Dict[str, Any]])
 def get_session_history(phone_number: str, db: Session = Depends(get_db)):
-    clean_sender = "".join(filter(str.isdigit, phone_number))
-    if not clean_sender:
-        raise HTTPException(status_code=400, detail="Invalid phone number")
+    clean_sender = _sanitize_session_id(phone_number)
+    history = []
+    try:
+        session = db.query(WhatsappChatSession).filter(
+            WhatsappChatSession.phone_number == clean_sender
+        ).first()
+        if session and session.history:
+            history = list(session.history)
+    except Exception as db_err:
+        print(f"[WhatsApp-Session] Notice: DB session fetch: {db_err}")
+        history = []
         
-    session = db.query(WhatsappChatSession).filter(
-        WhatsappChatSession.phone_number == clean_sender
-    ).first()
-    
-    if not session:
-        return ApiResponse(success=True, data={"phone_number": clean_sender, "history": []})
-        
-    return ApiResponse(success=True, data={"phone_number": clean_sender, "history": session.history or []})
+    return ApiResponse(success=True, data={"phone_number": clean_sender, "history": history})
 
 @router.post("/session/send", response_model=ApiResponse[Dict[str, Any]])
 def send_user_message(payload: UserSendSchema, db: Session = Depends(get_db)):
-    clean_sender = "".join(filter(str.isdigit, payload.phone_number))
-    if not clean_sender:
-        raise HTTPException(status_code=400, detail="Invalid phone number")
-        
-    session = db.query(WhatsappChatSession).filter(
-        WhatsappChatSession.phone_number == clean_sender
-    ).first()
+    clean_sender = _sanitize_session_id(payload.phone_number)
     
-    if not session:
-        session = WhatsappChatSession(
-            phone_number=clean_sender,
-            history=[],
-            last_interaction=""
-        )
-        db.add(session)
+    session = None
+    existing_history = []
+    try:
+        session = db.query(WhatsappChatSession).filter(
+            WhatsappChatSession.phone_number == clean_sender
+        ).first()
+        if session and session.history:
+            existing_history = list(session.history)
+    except Exception as db_err:
+        print(f"[Website-WhatsApp] Notice: DB read session error: {db_err}")
         
     # Append user message
-    new_history = list(session.history or [])
+    new_history = list(existing_history)
     new_history.append({
         "role": "user",
         "content": payload.message,
@@ -331,22 +337,37 @@ def send_user_message(payload: UserSendSchema, db: Session = Depends(get_db)):
         "timestamp": datetime.datetime.utcnow().isoformat()
     })
     
-    session.history = new_history
-    session.last_interaction = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    # Persist session and log if DB is accessible
+    try:
+        if not session:
+            session = WhatsappChatSession(
+                phone_number=clean_sender,
+                history=new_history,
+                last_interaction=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            )
+            db.add(session)
+        else:
+            session.history = new_history
+            session.last_interaction = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            
+        log_item = WhatsappMessageLog(
+            phone_number=clean_sender,
+            query=payload.message,
+            response=response_text,
+            status=status_msg,
+            timestamp=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            latency=latency
+        )
+        db.add(log_item)
+        db.commit()
+    except Exception as save_err:
+        print(f"[Website-WhatsApp] Notice: Could not persist session history to DB: {save_err}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
     
-    # Log message
-    log_item = WhatsappMessageLog(
-        phone_number=clean_sender,
-        query=payload.message,
-        response=response_text,
-        status=status_msg,
-        timestamp=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
-        latency=latency
-    )
-    db.add(log_item)
-    db.commit()
-    
-    return ApiResponse(success=True, data={"phone_number": clean_sender, "history": session.history})
+    return ApiResponse(success=True, data={"phone_number": clean_sender, "history": new_history})
 
 @router.post("/admin/send", response_model=ApiResponse[Dict[str, Any]])
 def admin_send_message(

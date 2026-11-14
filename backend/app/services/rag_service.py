@@ -48,21 +48,35 @@ class RagService:
         Called by /api/v1/chat (website) and /api/v1/whatsapp/webhook (WhatsApp).
         """
         response = ""
+        retrieved_sources = []
 
         # Try RAG pipeline first if credentials exist
         if (self.groq_client or self.openai_client) and self.pinecone_key:
             retrieval = self.retrieve_context(prompt)
+            retrieved_sources = retrieval.get("sources", [])
             if retrieval["context"]:
                 response = self.generate_answer(
                     question=prompt,
                     context=retrieval["context"],
-                    sources=retrieval["sources"],
+                    sources=retrieved_sources,
                     history=history
                 )
 
         # Fallback to local semantic router if RAG returns nothing
         if not response:
             response = self._query_local_semantic_router(prompt, db)
+            if retrieved_sources and "**Sources:**" not in response and "📄 **Sources:**" not in response:
+                clean_sources = [os.path.basename(s).strip() for s in retrieved_sources if s]
+                unique_sources = list(dict.fromkeys(clean_sources))
+                if unique_sources:
+                    response += f"\n\n📄 **Sources:** {', '.join(unique_sources)}"
+            elif "**Sources:**" not in response and "📄 **Sources:**" not in response:
+                response += "\n\n📄 **Sources:** SSIET College Official Database"
+        elif retrieved_sources and "**Sources:**" not in response and "📄 **Sources:**" not in response:
+            clean_sources = [os.path.basename(s).strip() for s in retrieved_sources if s]
+            unique_sources = list(dict.fromkeys(clean_sources))
+            if unique_sources:
+                response += f"\n\n📄 **Sources:** {', '.join(unique_sources)}"
 
         # Log search to database history
         try:
@@ -154,7 +168,9 @@ class RagService:
         sources = sources or []
         history = history or []
 
-        sources_suffix = f"\n\n**Sources:** {', '.join(sources)}" if sources else ""
+        clean_sources = [os.path.basename(s).strip() for s in sources if s]
+        unique_sources = list(dict.fromkeys(clean_sources))
+        sources_suffix = f"\n\n📄 **Sources:** {', '.join(unique_sources)}" if unique_sources else ""
 
         system_instruction = (
             "You are the CampusConnect AI Assistant for Sri Satya Institute of Engineering and Technology.\n\n"
@@ -176,13 +192,31 @@ class RagService:
 
         try:
             if self.groq_client:
-                completion = self.groq_client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=messages,
-                    temperature=0.3,  # Low temperature for factual accuracy
-                    max_tokens=2048
-                )
-                return completion.choices[0].message.content + sources_suffix
+                candidate_models = [
+                    "llama-3.3-70b-versatile",
+                    "openai/gpt-oss-120b",
+                    "qwen/qwen3.8-27b",
+                    "openai/gpt-oss-20b"
+                ]
+                completion = None
+                last_err = None
+                for model_name in candidate_models:
+                    try:
+                        completion = self.groq_client.chat.completions.create(
+                            model=model_name,
+                            messages=messages,
+                            temperature=0.3,  # Low temperature for factual accuracy
+                            max_tokens=2048
+                        )
+                        break
+                    except Exception as me:
+                        last_err = me
+                        continue
+
+                if completion:
+                    return completion.choices[0].message.content + sources_suffix
+                elif last_err:
+                    print(f"[RAG] All Groq candidate models failed: {last_err}")
             elif self.openai_client:
                 completion = self.openai_client.chat.completions.create(
                     model="gpt-4o-mini",

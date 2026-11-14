@@ -394,25 +394,44 @@ def health_check_groq(current_user: User = Depends(get_current_user)):
         import time
         start_time = time.time()
         
-        completion = rag_service.groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": "You are a health probe helper."},
-                {"role": "user", "content": "Explain CampusConnect AI briefly in one sentence."}
-            ],
-            max_tokens=50,
-            temperature=0.1
-        )
-        
+        candidate_models = [
+            "llama-3.3-70b-versatile",
+            "openai/gpt-oss-120b",
+            "qwen/qwen3.8-27b",
+            "openai/gpt-oss-20b"
+        ]
+        completion = None
+        used_model = candidate_models[0]
+        last_err = None
+        for model_name in candidate_models:
+            try:
+                completion = rag_service.groq_client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": "You are a health probe helper."},
+                        {"role": "user", "content": "Explain CampusConnect AI briefly in one sentence."}
+                    ],
+                    max_tokens=50,
+                    temperature=0.1
+                )
+                used_model = model_name
+                break
+            except Exception as me:
+                last_err = me
+                continue
+
+        if not completion:
+            raise last_err or ValueError("All candidate Groq models failed.")
+
         latency = round(time.time() - start_time, 2)
         response_text = completion.choices[0].message.content
         
         return ApiResponse(data={
             "status": "connected",
-            "model": "llama-3.3-70b-versatile",
+            "model": used_model,
             "response_time": latency,
             "test_response": response_text,
-            "message": "Groq API is operational and responded successfully."
+            "message": f"Groq API is operational and responded successfully using {used_model}."
         })
     except Exception as e:
         raise HTTPException(

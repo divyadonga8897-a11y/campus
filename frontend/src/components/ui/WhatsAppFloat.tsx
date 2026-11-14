@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { MessageCircle, X, Send, Bot, Sparkles, RefreshCw } from "lucide-react";
+import { MessageCircle, X, Send, Bot, Sparkles, RefreshCw, FileText } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -235,14 +235,64 @@ export default function WhatsAppFloat() {
                           : "bg-gradient-to-tr from-blue-600 to-indigo-500 text-white rounded-tr-none shadow-md font-bold"
                       }`}
                     >
-                      {/* Simple markdown parsing for bold text */}
-                      {msg.content.split("\n\n").map((paragraph, pIdx) => (
-                        <p key={pIdx} className={pIdx > 0 ? "mt-2" : ""}>
-                          {paragraph.split("**").map((part, partIdx) =>
-                            partIdx % 2 === 1 ? <strong key={partIdx} className="font-extrabold text-white">{part}</strong> : part
-                          )}
-                        </p>
-                      ))}
+                      {/* Simple markdown parsing for bold text & sources badge */}
+                      {msg.content.split("\n\n").map((paragraph, pIdx) => {
+                        const isSourcePara =
+                          isAssistant &&
+                          (paragraph.includes("**Sources:**") ||
+                            paragraph.includes("**Source:**") ||
+                            paragraph.includes("📄 **Sources:**") ||
+                            paragraph.trim().startsWith("Sources:") ||
+                            paragraph.trim().startsWith("Source:"));
+
+                        if (isSourcePara) {
+                          const cleanSourcesText = paragraph
+                            .replace(/📄/g, "")
+                            .replace(/\*\*Sources:\*\*/gi, "")
+                            .replace(/\*\*Source:\*\*/gi, "")
+                            .replace(/^Sources:/gi, "")
+                            .replace(/^Source:/gi, "")
+                            .trim();
+                          const sourceItems = cleanSourcesText
+                            .split(",")
+                            .map((s) => s.trim().replace(/^\*+|\*+$/g, ""))
+                            .filter(Boolean);
+
+                          return (
+                            <div
+                              key={pIdx}
+                              className="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5"
+                            >
+                              <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+                                <FileText className="w-3 h-3 text-emerald-400 shrink-0" />
+                                Sources:
+                              </span>
+                              {sourceItems.map((src, sIdx) => (
+                                <span
+                                  key={sIdx}
+                                  className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-[10px] text-emerald-300 font-medium tracking-wide shadow-xs"
+                                >
+                                  {src}
+                                </span>
+                              ))}
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <p key={pIdx} className={pIdx > 0 ? "mt-2" : ""}>
+                            {paragraph.split("**").map((part, partIdx) =>
+                              partIdx % 2 === 1 ? (
+                                <strong key={partIdx} className="font-extrabold text-white">
+                                  {part}
+                                </strong>
+                              ) : (
+                                part
+                              )
+                            )}
+                          </p>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

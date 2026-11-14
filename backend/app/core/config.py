@@ -5,7 +5,7 @@ from pydantic import ValidationError, model_validator
 from typing import List, Union
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql://postgres.zayoiqgkbinpegqmgjeu:[Divya@120531]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres"
+    DATABASE_URL: str = "postgresql://postgres:DivyaDonga%401979@db.dmqlmnxurhfwzxcosrew.supabase.co:5432/postgres"
     ENVIRONMENT: str = "development"
     SECRET_KEY: str = "ssiet_jwt_secret_key_999_super_secured"
     JWT_SECRET: str = ""
